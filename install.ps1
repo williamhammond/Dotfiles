@@ -1,19 +1,5 @@
 Set-ExecutionPolicy Unrestricted -Force
-
-
-Install-Choco
-
-Write-Output "Updating powershell and restarting"
-choco install --yes powershell-core
-
-Restart-Computer -Confirm
-Set-File-Extension-Config 
-Install-Choco-Packages
-Set-Git-Config
-Install-Windows10Debloater
-Install-Docker
-
-Restart-Computer -Confirm
+$ErrorActionPreference = "Stop"
 
 function Install-Choco {
     [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
@@ -32,45 +18,54 @@ function Set-File-Extension-Config {
     Pop-Location
 }
 
+function Install-Choco-Package  {
+    param ([String] $Package)
+
+    choco install --yes --limit-output $Package
+    if ($LastExitCode -ne 0) {
+        Write-Error "Failed to install $Package $LastErrorMessage"
+        exit 1
+    }
+}
+
 function Install-Choco-Packages {
     Write-Output "Installing general programs"
-    choco install --yes firefox
-    choco install --yes googlechrome
-    choco install --yes 1password
-    choco install --yes 1password-cli
-    choco install --yes zoom
-    choco install --yes spotify
-    choco install --yes discord
-    choco install --yes slack
-    choco install --yes 7zip
-    choco install --yes shutup10
-    choco install --yes mullvad-app
-    choco install --yes todoist-desktop
-    choco install --yes tree
-
+    Install-Choco-Package firefox
+    Install-Choco-Package googlechrome
+    Install-Choco-Package 1password
+    Install-Choco-Package 1password-cli
+    Install-Choco-Package zoom
+    Install-Choco-Package spotify
+    Install-Choco-Package discord
+    Install-Choco-Package slack
+    Install-Choco-Package 7zip
+    Install-Choco-Package shutup10
+    Install-Choco-Package mullvad-app
+    Install-Choco-Package todoist-desktop
+    Install-Choco-Package tree
+    
     Write-Output "Installing coding programs"
-    choco install --yes vscode
-    choco install --yes jetbrainstoolbox
-    choco install --yes jetbrains-rider
-    choco install --yes intellijidea-ultimate
-    choco install --yes git
-    choco install --yes ripgrep
-    choco install --yes visualstudio2022community
-    choco install --yes cmder
-    choco install --yes wireshark
-    choco install --yes python
-    choco install --yes pip 
-    choco install --yes jdk11
-    choco install --yes tableplus
-    choco install --yes postman 
-    choco install --yes dotnet
-    choco install --yes github-desktop
-    choco install --yes curl
+    Install-Choco-Package vscode
+    Install-Choco-Package jetbrainstoolbox
+    Install-Choco-Package jetbrains-rider
+    Install-Choco-Package intellijidea-ultimate
+    Install-Choco-Package git
+    Install-Choco-Package ripgrep
+    Install-Choco-Package visualstudio2022community
+    Install-Choco-Package cmder
+    Install-Choco-Package wireshark
+    Install-Choco-Package python
+    Install-Choco-Package tableplus
+    Install-Choco-Package postman 
+    Install-Choco-Package dotnet
+    Install-Choco-Package github-desktop
+    Install-Choco-Package curl
+    Install-Choco-Package vim
 
     Write-Output "Installing gaming programs"
-    choco install --yes steam
-    choco install --yes epicgameslauncher
-    choco install --yes unity-hub
+    Install-Choco-Package steam
+    Install-Choco-Package epicgameslauncher
+    Install-Choco-Package unity-hub
 
     RefreshEnv
     Write-Output "Installing vscode extensiosn"
@@ -80,16 +75,26 @@ function Install-Choco-Packages {
 function Set-Git-Config {
     git config --global user.email "william.t.hammond@gmail.com"
     git config --global user.name "WilliamHammond"
-    ssh-keygen
 }
 
 function Install-Windows10Debloater {
-    Write-Output "Installing Windows10Debloater"
+    $RegistryPath = 'HKCU:\Software\Scripts'
+    $Name = 'Debloated'
+    $Value = '1'
+    If ((Test-Path $RegistryPath)) {
+        Write-Output "Windows10Debloater already installed"
+        return
+    }  
+
     Push-Location
+    Write-Output "Installing Windows10Debloater"
+    New-Item -Path $RegistryPath -Force | Out-Null
+    New-ItemProperty -Path $RegistryPath -Name $Name -Value $Value -PropertyType DWORD -Force 
+
     Set-Location $env:TEMP
     $Windows10DebloaterZip = $env:TEMP + "\" + "Windows10Debloater.zip"
     Invoke-RestMethod -Uri https://github.com/Sycnex/Windows10Debloater/archive/refs/heads/master.zip -OutFile $Windows10DebloaterZip
-    Expand-Archive $Windows10DebloaterPath
+    Expand-Archive -Force $Windows10DebloaterZip
 
     $Windows10DebloaterExe = $env:TEMP + "\" + "Windows10SysPrepDebloater.ps1"
     $DebloaterProcess = Start-Process -PassThru powershell -ArgumentList $Windows10DebloaterExe, "-Sysprep", "-Debloat", "-Privacy"
@@ -98,26 +103,38 @@ function Install-Windows10Debloater {
 }
 
 function Install-Dotnet-Packages {
-    dotnet tool install csharpier -g
+    dotnet tool install csharpier --global
+    dotnet tool install --global Microsoft.dotnet-interactive
 }
 
 function Install-Docker {
     Write-Output "Setting up WSL and Docker"
     Push-Location
-    Enable-WindowsOptionalFeature -Online -FeatureName containers -All
-    choco install --yes docker-for-windows
-    choco install --yes vscode-docker
-    choco install --yes Microsoft-Hyper-V-All --source="'windowsFeatures'"
+    Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+    Restart-Computer -Force
 
+    Install-Choco-Package docker-for-windows
+    Install-Choco-Package vscode-docker
     RefreshEnv
+
     wsl --install
     wsl --set-default-version 2
 
-    $UbuntuZip = $env:TEMP + "\" + "Ubuntu2004.zip"
-    Invoke-RestMethod -Uri https://aka.ms/wslubuntu2004 -OutFile $UbuntuZip
-    Expand-Archive $UbuntuZip ubuntu
-    $UserEnv = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    [System.Environment]::SetEnvironmentVariable("PATH", $UserEnv + (get-location) + "\ubuntu", "User")
-    .\ubuntu\ubuntu2004.exe
+    winget install "ubuntu" --source msstore --silent --accept-package-agreements
     Push-Location
 }
+
+Install-Choco
+
+Write-Output "Updating powershell and restarting"
+choco install --yes powershell-core
+Restart-Computer -Force
+
+Set-File-Extension-Config 
+Install-Choco-Packages
+Set-Git-Config
+Install-Windows10Debloater
+Install-Docker
+Install-Dotnet-Packages
+
+Restart-Computer -Force
