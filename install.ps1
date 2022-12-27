@@ -1,9 +1,74 @@
 Set-ExecutionPolicy Unrestricted -Force
 $ErrorActionPreference = "Stop"
 
+$CompletedSteps = @{
+    'InstalledPowershell' = $false
+    'EnabledWsl'          = $false
+    'InstalledAll'        = $false
+}
+$RegistryRoot = 'HKCU:\Software\Scripts\Setup'
+
+function Set-Run {
+    $Command = 'powershell -Command "Start-Process PowerShell -Verb RunAs -ArgumentList ''-noexit -file ' + $PSCommandPath + '''"'
+    $KeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' 
+    # The exclamation point tells us to retry if the script fails
+    # https://learn.microsoft.com/en-us/windows/win32/setupapi/run-and-runonce-registry-keys
+    $Name = 'SetupScript' 
+
+    $Properties = Get-ItemProperty -Path $KeyPath
+    if (-not (($Properties).$Name)) {
+        New-ItemProperty -Path $KeyPath -Name $Name -Value $Command 
+    }
+    else {
+        Set-ItemProperty -Path $KeyPath -Name $Name -Value $Command
+    }
+}
+
+function Remove-Run {
+    $KeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' 
+    $Name = 'SetupScript' 
+
+    Remove-ItemProperty -Path $KeyPath -Name $Name
+}
+
+function Get-Initial-Completed-Steps {
+    $RegistryPath = $RegistryRoot + '\Completed'
+    if (-not (Test-Path $RegistryPath)) {
+        New-Item -Path $RegistryPath
+    }
+
+    $Steps = Get-ItemProperty -Path $RegistryPath
+    $CompletedSteps['InstalledPowershell'] = [bool]$Steps.InstalledPowershell
+    $CompletedSteps['EnabledWsl'] = [bool]$Steps.EnabledWsl
+    $CompletedSteps['InstalledAll'] = [bool]$Steps.InstalledAll
+}
+
+function Set-Completed-Step {
+    param ([String] $Step)
+
+    $RegistryPath = $RegistryRoot + '\Completed'
+    If (!(Test-Path $RegistryPath)) {
+        New-Item -Path $RegistryPath -Force | Out-Null
+    }
+
+    $Value = '1'
+    New-ItemProperty -Path $RegistryPath -Name $Step -Value $Value -PropertyType DWORD -Force 
+}
+
 function Install-Choco {
     [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
     Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+}
+
+function Install-Powershell {
+    if ($CompletedSteps.InstalledPowershell) {
+        Write-Output "Powershell already installed"
+        return
+    }
+    Write-Output "Updating powershell and restarting"
+    choco install --yes powershell-core
+    Set-Completed-Step "InstalledPowershell"
+    Restart-Computer -Force
 }
 
 function Set-File-Extension-Config {
@@ -18,7 +83,7 @@ function Set-File-Extension-Config {
     Pop-Location
 }
 
-function Install-Choco-Package  {
+function Install-Choco-Package {
     param ([String] $Package)
 
     choco install --yes --limit-output $Package
@@ -78,9 +143,8 @@ function Set-Git-Config {
 }
 
 function Install-Windows10Debloater {
-    $RegistryPath = 'HKCU:\Software\Scripts'
     $Name = 'Debloated'
-    $Value = '1'
+    $RegistryPath = $RegistryRoot + '\' + $Name
     If ((Test-Path $RegistryPath)) {
         Write-Output "Windows10Debloater already installed"
         return
@@ -89,6 +153,7 @@ function Install-Windows10Debloater {
     Push-Location
     Write-Output "Installing Windows10Debloater"
     New-Item -Path $RegistryPath -Force | Out-Null
+    $Value = '1'
     New-ItemProperty -Path $RegistryPath -Name $Name -Value $Value -PropertyType DWORD -Force 
 
     Set-Location $env:TEMP
@@ -97,7 +162,7 @@ function Install-Windows10Debloater {
     Expand-Archive -Force $Windows10DebloaterZip
 
     $Windows10DebloaterExe = $env:TEMP + "\" + "Windows10SysPrepDebloater.ps1"
-    $DebloaterProcess = Start-Process -PassThru powershell -ArgumentList $Windows10DebloaterExe, "-Sysprep", "-Debloat", "-Privacy"
+    $DebloaterProcess = Start-Process -PassThru powershell -ArgumentList $Windows10DebloaterExe '-Sysprep', '-Debloat', '-Privacy'
     Wait-Process $DebloaterProcess.ID -Timeout 600
     Pop-Location 
 }
@@ -109,9 +174,11 @@ function Install-Dotnet-Packages {
 
 function Install-Docker {
     Write-Output "Setting up WSL and Docker"
-    Push-Location
-    Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
-    Restart-Computer -Force
+    if (!$CompletedSteps.EnabledWsl) {
+        Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+        Set-Completed-Step "EnabledWsl"
+        Restart-Computer -Force
+    }
 
     Install-Choco-Package docker-for-windows
     Install-Choco-Package vscode-docker
@@ -121,20 +188,23 @@ function Install-Docker {
     wsl --set-default-version 2
 
     winget install "ubuntu" --source msstore --silent --accept-package-agreements
-    Push-Location
 }
 
+Get-Initial-Completed-Steps
+if ($CompletedSteps.InstalledAll) { 
+    Write-Output "All steps already completed"
+    Remove-Run 
+    exit 0
+}
+
+Set-Run
 Install-Choco
-
-Write-Output "Updating powershell and restarting"
-choco install --yes powershell-core
-Restart-Computer -Force
-
+Install-Powershell
 Set-File-Extension-Config 
 Install-Choco-Packages
 Set-Git-Config
 Install-Windows10Debloater
 Install-Docker
 Install-Dotnet-Packages
-
+Set-Completed-Step "InstalledAll"
 Restart-Computer -Force
