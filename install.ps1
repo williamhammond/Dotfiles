@@ -95,41 +95,39 @@ function Install-Choco-Package {
 
 function Install-Choco-Packages {
     Write-Output "Installing general programs"
-    Install-Choco-Package firefox
-    Install-Choco-Package googlechrome
     Install-Choco-Package 1password
     Install-Choco-Package 1password-cli
-    Install-Choco-Package zoom
-    Install-Choco-Package spotify
-    Install-Choco-Package discord
-    Install-Choco-Package slack
     Install-Choco-Package 7zip
-    Install-Choco-Package shutup10
+    Install-Choco-Package discord
+    Install-Choco-Package firefox
+    Install-Choco-Package googlechrome
     Install-Choco-Package mullvad-app
+    Install-Choco-Package spotify
+    Install-Choco-Package slack
+    Install-Choco-Package shutup10
     Install-Choco-Package todoist-desktop
     Install-Choco-Package tree
+    Install-Choco-Package zoom
     
     Write-Output "Installing coding programs"
-    Install-Choco-Package vscode
-    Install-Choco-Package jetbrainstoolbox
-    Install-Choco-Package jetbrains-rider
-    Install-Choco-Package intellijidea-ultimate
-    Install-Choco-Package git
-    Install-Choco-Package ripgrep
-    Install-Choco-Package visualstudio2022community
+    Install-Choco-Package curl
     Install-Choco-Package cmder
-    Install-Choco-Package wireshark
+    Install-Choco-Package dotnet
+    Install-Choco-Package git
+    Install-Choco-Package github-desktop
+    Install-Choco-Package jetbrainstoolbox
     Install-Choco-Package python
+    Install-Choco-Package ripgrep
     Install-Choco-Package tableplus
     Install-Choco-Package postman 
-    Install-Choco-Package dotnet
-    Install-Choco-Package github-desktop
-    Install-Choco-Package curl
     Install-Choco-Package vim
+    Install-Choco-Package visualstudio2022community
+    Install-Choco-Package vscode
+    Install-Choco-Package wireshark
 
     Write-Output "Installing gaming programs"
-    Install-Choco-Package steam
     Install-Choco-Package epicgameslauncher
+    Install-Choco-Package steam
     Install-Choco-Package unity-hub
 
     RefreshEnv
