@@ -22,6 +22,7 @@ cask "slack"
 cask "spotify"
 cask "todoist"
 cask "tableplus"
+cask "whatsapp"
 cask "zoom"
 
 cask "epic-games"
