@@ -1,4 +1,4 @@
-set -euo
+set -euo pipefail
 
 if ! command -v brew &> /dev/null; then
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -25,3 +25,5 @@ defaults write NSGlobalDomain AppleKeyboardUIMode -int 3
 # default behavior when holding down a key is to bring up a menu of characters with different diacritical marks.
 # Try holding down ‘e’ to see this in action. If you want to instead repeat characters when a key is held:
 defaults write -g ApplePressAndHoldEnabled -bool false
+
+./update-dotfiles-mac.sh
