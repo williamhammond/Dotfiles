@@ -12,6 +12,7 @@ brew "tree"
 brew "wireshark"
 brew "zig"
 
+cask "caffeine"
 cask "discord"
 cask "firefox"
 cask "iterm2"
