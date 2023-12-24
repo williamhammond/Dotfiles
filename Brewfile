@@ -2,6 +2,7 @@ tap "homebrew/cask"
 
 brew "docker"
 brew "dotnet"
+brew "fzf"
 brew "go"
 brew "llvm"
 brew "neovim"
