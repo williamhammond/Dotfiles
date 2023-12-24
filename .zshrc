@@ -16,3 +16,5 @@ __git_files () {
 
 # Only allow unique entries in path
 typeset -U PATH
+
+export PATH=$PATH:/opt/homebrew/bin
