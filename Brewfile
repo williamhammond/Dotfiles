@@ -14,6 +14,7 @@ brew "tree"
 brew "wireshark"
 brew "zig"
 
+cask "alt-tab"
 cask "caffeine"
 cask "discord"
 cask "firefox"
