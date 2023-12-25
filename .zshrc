@@ -10,7 +10,7 @@ bindkey -v
 
 # Fix zsh bug where tab completion hangs on git commands
 # https://superuser.com/a/459057
-__git_files () {
+__git_files() {
     _wanted files expl 'local files' _files
 }
 
@@ -18,3 +18,6 @@ __git_files () {
 typeset -U PATH
 
 export PATH=$PATH:/opt/homebrew/bin
+
+# shellcheck source=~/.fzf.zsh
+[ -f ~/.fzf.zsh ] && source "~/.fzf.zsh"
