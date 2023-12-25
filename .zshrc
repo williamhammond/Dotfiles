@@ -21,3 +21,5 @@ export PATH=$PATH:/opt/homebrew/bin
 
 # shellcheck source=~/.fzf.zsh
 [ -f ~/.fzf.zsh ] && source "~/.fzf.zsh"
+
+unsetopt beep
