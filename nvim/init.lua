@@ -680,3 +680,10 @@ cmp.setup {
 
 vim.wo.number = true
 vim.wo.relativenumber = true
+
+vim.api.nvim_create_autocmd({"BufNewFile", "BufRead"}, {
+  pattern = {"*.odin"},
+  callback = function()
+    vim.cmd("setlocal syntax=OFF")
+  end
+})
